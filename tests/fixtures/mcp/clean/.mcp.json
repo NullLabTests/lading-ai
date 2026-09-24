@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "local-tools": {
+      "command": "python",
+      "args": ["-m", "tooling.server"],
+      "env": {
+        "LANG": "C.UTF-8"
+      }
+    }
+  }
+}

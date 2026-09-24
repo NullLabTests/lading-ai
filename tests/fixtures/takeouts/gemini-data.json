@@ -1,0 +1,13 @@
+{
+  "conversations": [
+    {
+      "title": "Gemini homework helper",
+      "prompt": [
+        { "role": "user", "parts": [{ "text": "explain docker, my API key is sk-dd8392k2l7qwbv01e8r5zzj1y5n7x1y2z0a9v8b7" }] }
+      ],
+      "responses": [
+        { "text": "docker runs containers; never paste secrets into a chat" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+[
+  {
+    "title": "project acme launch",
+    "create_time": 1700000000,
+    "mapping": {
+      "m1": {
+        "message": {
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["Let's ship project acme before Friday."] }
+        }
+      },
+      "m2": {
+        "message": {
+          "author": { "role": "assistant" },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The deploy key for acme is sk-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0",
+              "rotate it tonight."
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "title": "deploy pipeline audit",
+    "create_time": 1700000100,
+    "mapping": {
+      "m1": {
+        "message": {
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["Check who has AKIAIOSFODNN7EXAMPLE today."] }
+        }
+      },
+      "m2": {
+        "message": {
+          "author": { "role": "assistant" },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The webhook secret is 0123456789abcdef0123456789abcdef0123456789abcdef.",
+              "DB password is correcthorsebatterystaple-extra-characters.",
+              "The refresh token is eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "title": "invoices",
+    "create_time": 1700000200,
+    "mapping": {
+      "m1": {
+        "message": {
+          "author": { "role": "user" },
+          "content": {
+            "content_type": "user_editable_context",
+            "attachments": [
+              { "id": "att1", "name": "acme_invoice_q3.pdf", "mime_type": "application/pdf", "size": 1000 }
+            ],
+            "parts": ["Here is the project acme invoice.", "Please redact before shipping."]
+          }
+        }
+      }
+    }
+  },
+  {
+    "title": "compliance review",
+    "create_time": 1700000250,
+    "mapping": {
+      "m1": {
+        "message": {
+          "author": { "role": "user" },
+          "content": {
+            "content_type": "text",
+            "parts": ["Did legal sign off on project acme?"]
+          }
+        }
+      },
+      "m2": {
+        "message": {
+          "author": { "role": "assistant" },
+          "content": {
+            "content_type": "text",
+            "parts": ["Yes, on the understanding that the export stays clean."]
+          }
+        }
+      }
+    }
+  },
+  {
+    "title": "vacation ideas",
+    "create_time": 1700000300,
+    "mapping": {
+      "m1": {
+        "message": {
+          "author": { "role": "user" },
+          "content": { "content_type": "text", "parts": ["Beach or mountains?"] }
+        }
+      },
+      "m2": {
+        "message": {
+          "author": { "role": "assistant" },
+          "content": { "content_type": "text", "parts": ["Take sunscreen either way. Also the wifi password is sunsetsandsea-2026-excellent."] }
+        }
+      }
+    }
+  }
+]

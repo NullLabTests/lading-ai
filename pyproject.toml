@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lading-cli"
+version = "0.1.0"
+description = "Static, offline receipts for the work machines say they'll do — skills, MCP servers, agent configs, chat takeouts, and repos. No network, no model, no telemetry."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "lading" }]
+keywords = [
+    "audit",
+    "static-analysis",
+    "skills",
+    "mcp",
+    "mcp-servers",
+    "llm-agents",
+    "agent-configs",
+    "takeout",
+    "chatgpt",
+    "claude",
+    "gemini",
+    "privacy",
+    "redaction",
+    "offline-first",
+    "receipt",
+    "provenance",
+    "cli",
+    "no-telemetry",
+    "security",
+]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+    "Typing :: Typed",
+]
+dependencies = ["PyYAML>=6.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pyflakes>=2.4"]
+
+[project.scripts]
+lading = "lading.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/NullLabTests/lading"
+Repository = "https://github.com/NullLabTests/lading"
+Issues = "https://github.com/NullLabTests/lading/issues"
+
+[tool.setuptools.packages.find]
+include = ["lading*"]
+
+[tool.setuptools.package-data]
+lading = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+norecursedirs = ["fixtures", "dist", "build", ".git"]

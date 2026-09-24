@@ -1,0 +1,17 @@
+{
+  "uuid": "conv-0001",
+  "name": "claude fine-tuning notes",
+  "chat_messages": [
+    {
+      "role": "user",
+      "content": [{ "type": "text", "text": "Do we still embed the customer tokens?" }]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        { "type": "text", "text": "Yes: api_key = replaceme-apikey-1234567890abcdef" },
+        { "type": "text", "text": "and the long form is sk-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbb" }
+      ]
+    }
+  ]
+}

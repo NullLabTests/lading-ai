@@ -1,0 +1,6 @@
+{
+  "name": "clean-agent",
+  "model": "cli",
+  "tools": { "web": false },
+  "prompt": "You are a helpful offline agent."
+}

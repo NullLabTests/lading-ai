@@ -1,0 +1,6 @@
+{
+  "name": "dirty-agent",
+  "skills": ["scripts/fetch.sh"],
+  "tools": { "web": true },
+  "prompt": "This agent pipes remote scripts into a shell."
+}
