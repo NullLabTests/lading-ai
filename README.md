@@ -16,28 +16,58 @@ config, a chat **takeout** (ChatGPT / Claude / Gemini export), or a **git
 repo**. It returns one JSON `Receipt` — what files were involved, what rules a
 machine's configuration violates, and what the run did.
 
-```text
-Artifact  ->  Findings  ->  Receipt
-   |             |            |
- discover      rules      hash + write
-```
+![The lading flow — Artifact → Findings → Receipt (animated)](assets/flow.svg)
 
 No network. No model. No telemetry. Every command produces the **same**
 receipt shape, so the output is a ledger you can diff, keep, and render.
 
 ---
 
-## Why a "bill of lading"?
+## Where the name comes from
 
-A bill of lading is the document that says what cargo is aboard, who may move
-it, and whether it can leave the dock. `lading` is the same document for the
-parts of your machine that do work on your behalf:
+A **bill of lading** is the cargo manifest a ship carries: what is aboard, who
+may move it, and whether it can leave the dock. When the manifest and the ship
+disagree, you learn about it before the hold is opened.
 
-- **Before** you let a machine's config run things, know what it *intends*.
-- **After** it runs, keep a receipt that cannot be edited into "nothing
-  happened".
-- The **Receipt** is the audit log; the **HTML report** is the human read;
-  both are static files you can archive.
+> **lading** *(noun)*: the act of loading cargo onto a ship — the stuff the
+> ship is carrying, and the paper that says so.
+
+I run a lot of machines now — Claude Code, opencode, Cursor, and whatever
+skill or MCP server I dropped into my `~/.config` last week. Every one of
+those is a **promise about work the machine will do for me**: a skill that
+pipes `curl … | sh`, an MCP config that names a URL, an agent config that
+points at scripts. That promise list is my cargo — and until `lading`, I had
+no manifest for it.
+
+## Why I built it — agent configs are an attack surface
+
+A skill is not documentation, it is *executable* instructions. An MCP config
+can reach a remote endpoint or spawn a local command. An agent config can
+reach for scripts it never declares. A `.env` can sit next to code that was
+never meant to ship. And a chat takeout is often the most sensitive archive on
+disk — exactly the thing a vendor asks you to import.
+
+You cannot audit what you cannot enumerate, and none of this was enumerable by
+staring at a config file. The moment I saw `curl -fsSL … | sh` inside a skill
+that my agent was allowed to load, the tool wrote itself:
+
+- **Artifact** — discover and hash every file the machine would use.
+- **Findings** — deterministic rules with stable ids, so `NET-PIPE-SH` always
+  means the same thing, everywhere.
+- **Receipt** — one JSON schema for every lens, on every run.
+
+## What it buys you
+
+- **Speed.** An afternoon of spelunking through `~/.config` becomes one
+  five-second command.
+- **Evidence.** Keep a receipt before and after a change — `lading diff`
+  turns "did I break anything?" into a one-liner.
+- **Gates.** `--fail-on` makes it a CI-ready check: fail a merge when a skill
+  goes `high`.
+- **Handoff.** The HTML report is one self-contained file — send it, archive
+  it, no tool needed to read it.
+- **Trust.** It never executes, never uploads, never phones home. The receipt
+  is the manifest; you inspect the cargo, not the sales pitch.
 
 ## The five lenses
 
@@ -246,6 +276,8 @@ lading/
   rules/                findings: net, secrets, undeclared, repo, takeout
   adapters/             lenses: skill_md, mcp_json, agent_configs, takeout_*, repo_fs
   render/               text + single-file HTML
+assets/
+  flow.svg              the animated Artifact → Findings → Receipt diagram
 tests/
   fixtures/             clean + dirty inputs for every lens
 demo.sh                 the five-second tour
