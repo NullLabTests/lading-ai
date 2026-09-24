@@ -36,6 +36,10 @@ RULES_DEF: list[dict] = [
     {"id": "MCP-URL", "sev": "med", "lens": "mcp", "catches": "MCP server is a remote URL endpoint"},
     {"id": "MCP-CMD", "sev": "ok", "lens": "mcp", "catches": "MCP server spawns a local command (listed, not executed)"},
     {"id": "AGENT-REF", "sev": "ok", "lens": "agent", "catches": "agent config references a script/tool path"},
+    # diff.py — receipt-to-receipt change detection; ok = informational.
+    {"id": "INPUT-ADDED", "sev": "ok", "lens": "diff", "catches": "a hashed artifact appeared between two receipts"},
+    {"id": "INPUT-MODIFIED", "sev": "ok", "lens": "diff", "catches": "an artifact's content changed between two receipts (sha256 differs)"},
+    {"id": "INPUT-REMOVED", "sev": "ok", "lens": "diff", "catches": "an artifact present in the old receipt is gone in the new"},
 ]
 
 

@@ -42,7 +42,7 @@ def build_argparser() -> argparse.ArgumentParser:
     common = _common_flags()
     p = argparse.ArgumentParser(
         prog="lading",
-        description="A bill of lading for work done by machines. Static, offline, no model.",
+        description="Audit your AI agents before you let them run. A bill of lading for work done by machines - static, offline, no model.",
         parents=[common],
     )
     p.add_argument("--version", action="version", version=f"lading {__version__}")
@@ -66,7 +66,7 @@ def build_argparser() -> argparse.ArgumentParser:
     rep.add_argument("receipt", help="path to a lading receipt.json")
     rep.add_argument("--out", default="", help="HTML output path (default: .lading/report.html)")
 
-    dp = sub.add_parser("diff", parents=[common], help="compare two receipts: findings added/removed by id+artifact")
+    dp = sub.add_parser("diff", parents=[common], help="two receipts: findings + artifact (file) changes — add/modify/remove")
     dp.add_argument("old", help="old receipt.json")
     dp.add_argument("new", help="new receipt.json")
 
@@ -198,21 +198,69 @@ def cmd_report(args) -> Receipt:
 
 
 def cmd_diff(args) -> Receipt:
-    old = _load_receipt_table(args.old)
-    new = _load_receipt_table(args.new)
-    added = [f for f in new if f not in old]
-    removed = [f for f in old if f not in new]
-    added.sort()
-    removed.sort()
+    old = _load_receipt_doc(args.old)
+    new = _load_receipt_doc(args.new)
 
     receipt = Receipt(command=f"diff {args.old} {args.new}")
-    for f in added:
-        receipt.findings.append(_map_f(f, "ADDED"))
-    for f in removed:
-        receipt.findings.append(_map_f(f, "REMOVED"))
-    ef = 1 if _exceeds_threshold(added, args.fail_on) else 0
-    receipt.exit = ef
-    receipt.notes.append(f"{len(added)} finding(s) added, {len(removed)} removed")
+    from lading.hashio import sha256_file
+
+    for p in (args.old, args.new):
+        try:
+            h = sha256_file(p)
+        except OSError:
+            continue
+        art = Artifact(path=os.path.basename(p), sha256=h, kind="receipt", size=os.path.getsize(p))
+        if all(a.path != art.path for a in receipt.inputs):
+            receipt.inputs.append(art)
+
+    # findings: a finding is the same (id, artifact) pair; a detail change is
+    # a MODIFIED finding, not a remove + re-add.
+    old_f = {_finding_key(f): f for f in old.findings}
+    new_f = {_finding_key(f): f for f in new.findings}
+    added: list[Finding] = []
+    removed: list[Finding] = []
+    modified: list[Finding] = []
+    for key in sorted(set(old_f) | set(new_f)):
+        if key in new_f and key not in old_f:
+            added.append(_tag_finding(new_f[key], "ADDED"))
+        elif key in old_f and key not in new_f:
+            removed.append(_tag_finding(old_f[key], "REMOVED"))
+        elif old_f[key].detail != new_f[key].detail:
+            modified.append(_tag_finding(new_f[key], "MODIFIED"))
+
+    # inputs: the receipt carries sha256 for every artifact, so the same path
+    # with a different hash is a real content change, not just an addition.
+    old_i = {a.path: a for a in old.inputs}
+    new_i = {a.path: a for a in new.inputs}
+    inputs_added: list[Finding] = []
+    inputs_modified: list[Finding] = []
+    inputs_removed: list[Finding] = []
+    for pth in sorted(set(old_i) | set(new_i)):
+        if pth in new_i and pth not in old_i:
+            a = new_i[pth]
+            inputs_added.append(Finding("INPUT-ADDED", "ok", pth, f"{a.kind} artifact added, sha256 {a.sha256[:16]}…"))
+        elif pth in old_i and pth not in new_i:
+            a = old_i[pth]
+            inputs_removed.append(Finding("INPUT-REMOVED", "ok", pth, f"{a.kind} artifact no longer present"))
+        elif old_i[pth].sha256 != new_i[pth].sha256:
+            inputs_modified.append(Finding(
+                "INPUT-MODIFIED", "ok", pth,
+                f"content changed: sha256 {old_i[pth].sha256[:12]}… → {new_i[pth].sha256[:12]}…",
+            ))
+
+    receipt.findings.extend(inputs_added)
+    receipt.findings.extend(inputs_modified)
+    receipt.findings.extend(inputs_removed)
+    receipt.findings.extend(added)
+    receipt.findings.extend(removed)
+    receipt.findings.extend(modified)
+
+    changed = [(f.sev, f.id, f.artifact, f.detail) for f in added + modified]
+    receipt.exit = int(_exceeds_threshold(changed, args.fail_on))
+    receipt.notes.append(
+        f"findings: {len(added)} added, {len(modified)} modified, {len(removed)} removed · "
+        f"inputs: {len(inputs_added)} added, {len(inputs_modified)} modified, {len(inputs_removed)} removed"
+    )
     return receipt
 
 
@@ -224,12 +272,15 @@ def _exceeds_threshold(rows: list[tuple], fail_on: str) -> bool:
     return False
 
 
-def _map_f(f: tuple, tag: str) -> Finding:
-    sev, rid, artifact, detail = f
-    return Finding(id=rid, sev=sev, artifact=artifact, detail=f"{tag} by id+artifact: {detail}")
+def _finding_key(f: Finding) -> tuple[str, str]:
+    return (f.id, f.artifact)
 
 
-def _load_receipt_table(path: str) -> list[tuple]:
+def _tag_finding(f: Finding, tag: str) -> Finding:
+    return Finding(id=f.id, sev=f.sev, artifact=f.artifact, detail=f"{tag} by id+artifact: {f.detail}")
+
+
+def _load_receipt_doc(path: str) -> Receipt:
     if not os.path.isfile(path):
         raise UsageError(f"no such receipt: {path}")
     try:
@@ -237,10 +288,7 @@ def _load_receipt_table(path: str) -> list[tuple]:
             data = json.load(f)
     except (OSError, ValueError) as exc:
         raise UsageError(f"cannot read receipt {path}: {exc}")
-    table: set[tuple] = set()
-    for ff in data.get("findings", []):
-        table.add((ff.get("sev", "ok"), ff.get("id", "?"), ff.get("artifact", ""), ff.get("detail", "")))
-    return sorted(table)
+    return Receipt.from_dict(data)
 
 
 def cmd_rules(args) -> Receipt:

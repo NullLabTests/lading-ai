@@ -229,12 +229,74 @@ def test_diff(receipt_dir):
     assert rc == 1
 
 
+def test_diff_input_change_detection(receipt_dir, capsys):
+    old = receipt_dir / "old.json"
+    new = receipt_dir / "new.json"
+    old.write_text(json.dumps({
+        "inputs": [
+            {"path": "skills/a/SKILL.md", "sha256": "a" * 64, "kind": "skill", "size": 10},
+            {"path": "skills/gone/SKILL.md", "sha256": "b" * 64, "kind": "skill", "size": 10},
+        ],
+        "findings": [],
+    }))
+    new.write_text(json.dumps({
+        "inputs": [
+            {"path": "skills/a/SKILL.md", "sha256": "c" * 64, "kind": "skill", "size": 20},
+            {"path": "skills/new/SKILL.md", "sha256": "d" * 64, "kind": "skill", "size": 30},
+        ],
+        "findings": [],
+    }))
+    rc = main(["diff", str(old), str(new), "--json"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    ids = {f["id"] for f in out["findings"]}
+    assert ids == {"INPUT-ADDED", "INPUT-MODIFIED", "INPUT-REMOVED"}
+    assert all(f["sev"] == "ok" for f in out["findings"])
+    mod = next(f for f in out["findings"] if f["id"] == "INPUT-MODIFIED")
+    assert mod["artifact"] == "skills/a/SKILL.md"
+    assert "→" in mod["detail"]
+    add = next(f for f in out["findings"] if f["id"] == "INPUT-ADDED")
+    assert add["artifact"] == "skills/new/SKILL.md"
+    rem = next(f for f in out["findings"] if f["id"] == "INPUT-REMOVED")
+    assert rem["artifact"] == "skills/gone/SKILL.md"
+    assert "inputs: 1 added, 1 modified, 1 removed" in out["notes"][0]
+
+
+def test_diff_finding_modified_not_dup(receipt_dir, capsys):
+    old = receipt_dir / "old.json"
+    new = receipt_dir / "new.json"
+    base = {"id": "NET-PIPE-SH", "sev": "high", "artifact": "s/SKILL.md"}
+    old.write_text(json.dumps({"findings": [{**base, "detail": "curl https://a | sh"}]}))
+    new.write_text(json.dumps({"findings": [{**base, "detail": "curl https://b | sh"}]}))
+    rc = main(["diff", str(old), str(new), "--json"])
+    assert rc == 1
+    out = json.loads(capsys.readouterr().out)
+    fs = out["findings"]
+    assert len(fs) == 1, fs
+    assert fs[0]["id"] == "NET-PIPE-SH"
+    assert fs[0]["detail"].startswith("MODIFIED")
+
+
+def test_diff_no_change(receipt_dir, capsys):
+    r = receipt_dir / "r.json"
+    r.write_text(json.dumps({
+        "inputs": [{"path": "a", "sha256": "x" * 64, "kind": "k", "size": 1}],
+        "findings": [{"id": "NO-LOCKFILE", "sev": "high", "artifact": "a", "detail": "d"}],
+    }))
+    rc = main(["diff", str(r), str(r), "--json"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["findings"] == []
+    assert "inputs: 0 added, 0 modified, 0 removed" in out["notes"][0]
+
+
 def test_rules_command(receipt_dir, capsys):
     rc = main(["rules"])
     assert rc == 0
     out = capsys.readouterr().out
     assert "NET-PIPE-SH" in out
     assert "NO-LOCKFILE" in out
+    assert "INPUT-ADDED" in out
 
 
 def test_scan_command(receipt_dir):
