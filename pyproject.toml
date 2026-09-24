@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lading-cli"
 version = "0.1.0"
-description = "Static, offline receipts for the work machines say they'll do — skills, MCP servers, agent configs, chat takeouts, and repos. No network, no model, no telemetry."
+description = "Audit your AI agents before you let them run. Static, offline receipts for the work machines say they'll do — skills, MCP servers, agent configs, chat takeouts, and repos. No network, no model, no telemetry."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -54,9 +54,9 @@ dev = ["pytest>=7", "pyflakes>=2.4"]
 lading = "lading.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/NullLabTests/lading"
-Repository = "https://github.com/NullLabTests/lading"
-Issues = "https://github.com/NullLabTests/lading/issues"
+Homepage = "https://github.com/NullLabTests/lading-ai"
+Repository = "https://github.com/NullLabTests/lading-ai"
+Issues = "https://github.com/NullLabTests/lading-ai/issues"
 
 [tool.setuptools.packages.find]
 include = ["lading*"]

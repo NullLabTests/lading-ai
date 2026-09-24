@@ -1,10 +1,11 @@
 # lading
 
-**A bill of lading for work done by machines.** Static. Offline. No model.
+**Audit your AI agents before you let them run.** A bill of lading for work
+done by machines. Static. Offline. No model.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: >=3.11](https://img.shields.io/badge/Python-%3E%3D3.11-informational.svg)](pyproject.toml)
-[![GitHub code size](https://img.shields.io/github/languages/code-size/NullLabTests/lading.svg)](.)
+[![GitHub code size](https://img.shields.io/github/languages/code-size/NullLabTests/lading-ai.svg)](.)
 [![offline only](https://img.shields.io/badge/offline-only-critical.svg)](SECURITY.md)
 [![no model](https://img.shields.io/badge/no%20model-true-brightgreen.svg)](.)
 [![no telemetry](https://img.shields.io/badge/no%20telemetry-true-brightgreen.svg)](.)
@@ -59,8 +60,9 @@ that my agent was allowed to load, the tool wrote itself:
 
 - **Speed.** An afternoon of spelunking through `~/.config` becomes one
   five-second command.
-- **Evidence.** Keep a receipt before and after a change — `lading diff`
-  turns "did I break anything?" into a one-liner.
+- **Evidence.** Every receipt is a ledger of file hashes and findings. Keep
+  one before and one after a change, and `lading diff` lists exactly which
+  configs, skills, and findings moved — the "did I break anything?" one-liner.
 - **Gates.** `--fail-on` makes it a CI-ready check: fail a merge when a skill
   goes `high`.
 - **Handoff.** The HTML report is one self-contained file — send it, archive
@@ -87,21 +89,22 @@ Every finding is a stable id (`NET-PIPE-SH`, `NO-LOCKFILE`, …), a severity
 ## Try it in five seconds
 
 ```bash
-git clone https://github.com/NullLabTests/lading.git --depth=1
-cd lading && ./demo.sh          # runs the whole tour on bundled fixtures
+git clone https://github.com/NullLabTests/lading-ai.git --depth=1
+cd lading-ai && ./demo.sh          # runs the whole tour on bundled fixtures
 ```
 
-`demo.sh` creates a throwaway venv (if needed), runs `scan`/`agents`/
-`takeout`/`repo`/`report`/`diff` against the fixture suite with all the
-flag variations, and shows the exit code of every run. Everything it writes
+`demo.sh` creates a throwaway venv (if needed), runs `rules`/`agents`/
+`takeout`/`repo`/`report`/`diff` — including a before/after change-detection
+pass that edits a skill, adds a new one, and deletes a script before diffing
+the two receipts — and shows the exit code of every run. Everything it writes
 goes to a temp directory that is deleted on exit.
 
 Or install it as a real tool:
 
 ```bash
-pipx install lading-cli                 # any shell
+pipx install git+https://github.com/NullLabTests/lading-ai.git   # any shell
 # or, for development:
-git clone git@github.com:NullLabTests/lading.git && cd lading
+git clone git@github.com:NullLabTests/lading-ai.git && cd lading-ai
 python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 .venv/bin/lading --version
 ```
@@ -141,10 +144,61 @@ and diff the past against the now:
 cp .lading/receipt.json before.json
 # … someone edits the config, run again …
 lading diff before.json .lading/receipt.json
-# HIGH NET-PIPE-SH pipe-to-sh/SKILL.md   ADDED by id+artifact
-# MED  UNDECLARED  pipe-to-sh/scripts/exfil.py  REMOVED by id+artifact
-# note: 1 finding(s) added, 1 removed
 ```
+
+## Change detection — diff is the point
+
+`lading diff` is not "the receipts look different". It is a precise
+change ledger for an AI-agent environment: every receipt input carries a
+`sha256`, so the diff knows whether a file *appeared*, *changed content*, or
+*disappeared*, on top of the findings that moved.
+
+```text
+$ lading agents ~/.config/opencode        # install an MCP server today, commit the receipt
+$ cp .lading/receipt.json before.json
+$ … tomorrow the skills folder moved, an MCP server was added…
+$ lading diff before.json .lading/receipt.json
+
+lading 0.1.0 · mode offline · host 7bb8df5b944a…
+command: diff before.json .lading/receipt.json
+
+findings (4):
+  OK   INPUT-ADDED     ~/.config/opencode/mcp.json
+       mcp artifact added, sha256 4f3d2c6b01a8…
+  OK   INPUT-REMOVED   skills/baz/SKILL.md
+       skill artifact no longer present
+  OK   INPUT-MODIFIED  skills/foo/SKILL.md
+       content changed: sha256 cb538aae91f9… → 5951581418d1…
+  MED  MCP-URL         ~/.config/opencode/mcp.json
+       ADDED by id+artifact: MCP server is a remote URL endpoint
+
+counts: high 0, med 1, ok 3
+note: findings: 1 added, 0 modified, 0 removed · inputs: 1 added, 1 modified, 1 removed
+
+exit 0
+```
+
+The tags a finding can carry:
+
+| tag            | sev  | meaning                                                            |
+|----------------|------|--------------------------------------------------------------------|
+| `INPUT-ADDED`    | ok | a new artifact appeared — a new MCP config, a new skill, a script  |
+| `INPUT-MODIFIED` | ok | the exact same path now hashes differently — real content changed  |
+| `INPUT-REMOVED`  | ok | an artifact is gone — a skill deleted, a config removed            |
+| `ADDED`        | orig | a rule finding that the old receipt did not have                   |
+| `REMOVED`      | orig | a rule finding that the new receipt no longer has                  |
+| `MODIFIED`     | orig | the same finding, different matched content (not remove + re-add)  |
+
+Input changes are `ok` — they are the ledger, not the verdict. The exit code
+still comes from findings at/above `--fail-on`, so `diff` is a safe,
+never-false-positive gate for CI.
+
+That is configuration change detection for AI-agent environments. It works
+because the receipt is a manifest, and `diff` answers "what changed aboard
+ship?" — before your agent ever gets to run the new cargo. Because a receipt
+is one JSON file, it is cheap to commit next to `package-lock.json` or
+`uv.lock`; teams can then enforce a policy ("no new credential/remote-shell
+findings") by diffing the last green receipt against the pull request's.
 
 ## Flags
 
@@ -187,7 +241,7 @@ lading agents [paths...]        skills + MCP + agent config lenses on the dirs
 lading takeout ZIP [--drop R]   sanitize a chat export: drop, redact, rewrite
 lading repo [path]              static audit of a git tree (default: .)
 lading report RECEIPT.json      render a receipt into single-file HTML
-lading diff OLD.json NEW.json   findings added/removed, by id + artifact
+lading diff OLD.json NEW.json   findings moved + file-append/modify/remove ledger
 lading rules                    print the rule catalog
 ```
 
@@ -285,7 +339,7 @@ demo.sh                 the five-second tour
 ## Development
 
 ```bash
-git clone git@github.com:NullLabTests/lading.git && cd lading
+git clone git@github.com:NullLabTests/lading-ai.git && cd lading-ai
 python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 .venv/bin/pytest
 .venv/bin/pyflakes lading tests/*.py              # zero warnings
