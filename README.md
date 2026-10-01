@@ -350,6 +350,11 @@ The test suite runs the real CLI against the fixture suite and asserts exit
 codes, receipts, drop/redact behavior, zip-slip handling, and the network
 ban.
 
+CI runs the suite on Python 3.11 through 3.14, lints the package and tests, and
+builds the sdist and wheel to confirm the metadata is valid. Adding a workflow
+that ran only on the default branch hid breakage on feature branches, so the
+push trigger covers all branches and concurrent runs cancel themselves.
+
 ## License
 
 [MIT](LICENSE). No CLA. If a rule needs the internet, it does not ship.
